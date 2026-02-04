@@ -16,7 +16,8 @@ This project is a specialized **ETL (Extract, Transform, Load)** pipeline built 
 * **Transform:** Implementation of complex fiscal business logic, specifically calculating the gradual 10% annual ISR discount according to RIF regulations.
 * **Load:** Generation of processed reports via console output (scalable to Database/API integration).
 
-### How to Run
+### 
+How to Run
 1. Clone this repository.
 2. Ensure you have **Java 17** and **Maven** installed.
 3. Place your data file named `datos_rif.xlsx` in the root directory (same level as `pom.xml`).
