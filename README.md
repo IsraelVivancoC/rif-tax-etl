@@ -18,12 +18,10 @@ The transformation engine follows the standard fiscal algorithm:
 2. **Gross ISR** = ((Taxable Profit - Lower Limit) * Surplus Percentage) + Fixed Fee.
 3. **Net ISR to Pay** = Gross ISR * (1 - Reduction Percentage based on Year).
 
-## 3. Legal Basis and Reference Data
-The transformation logic is strictly governed by the official parameters published by the **Servicio de Administración Tributaria (SAT)**.
-
+### 3. Legal Basis and Reference Data
 * **Primary Reference:** Annex 8 of the Miscellaneous Tax Resolution (RMF).
 * **Source Document:** The official PDF is included in this repository at `./docs/Anexo+8+RMF+2021+DOF+11012021.pdf`.
-* **Data Precision:** The system utilizes the "Tarifa aplicable a los pagos bimestrales" (Pág. 15) for the most accurate calculation possible.
+* **Data Precision:** The system utilizes the "Tarifa aplicable a los pagos bimestrales" for both **Period 1** and **Period 2**.
 
 ## 4. Technical Stack
 * **Language:** Java 17.
@@ -32,12 +30,11 @@ The transformation logic is strictly governed by the official parameters publish
     * **Log4j:** For application logging and error management.
 * **Architecture:** ETL (Extract, Transform, Load).
 
-## 5. Pipeline Stages
-1. **Extract:** Automated ingestion of `data_rif.xlsx` containing RFC, Client Name, Income, Expenses, and Years in the regime.
-2. **Transform:** * Validation of numerical data.
-    * Range-based search within Annex 8 tax brackets.
+### 5. Pipeline Stages
+1. **Extract:** Automated ingestion of `data_rif.xlsx`. The system iterates through all workbook sheets; each sheet represents a specific tax period (e.g., Sheet 1 = Bimestre 1).
+2. **Transform:** * Range-based search within tax brackets indexed by period.
     * Application of the decreasing 10% annual stimulus.
-3. **Load:** Structured console output with formatted financial data (Scalable to CSV/Database).
+3. **Load:** Structured console output with aligned financial data, showing Gross ISR, Stimulus, and Net ISR.
 
 ## 6. Setup and Execution
 1. Clone the repository.
@@ -70,12 +67,10 @@ El motor de transformación sigue el algoritmo fiscal estándar:
 2. **ISR Causado** = ((Utilidad Gravable - Límite Inferior) * Porcentaje sobre Excedente) + Cuota Fija.
 3. **ISR Neto a Pagar** = ISR Causado * (1 - Porcentaje de Reducción según el Año).
 
-## 3. Fundamento Legal y Datos de Referencia
-La lógica de transformación está estrictamente regida por los parámetros oficiales publicados por el **Servicio de Administración Tributaria (SAT)**.
-
+### 3. Fundamento Legal y Datos de Referencia
 * **Referencia Primaria:** Anexo 8 de la Resolución Miscelánea Fiscal (RMF).
-* **Documento Fuente:** El PDF oficial se incluye en este repositorio en `./docs/Anexo+8+RMF+2021+DOF+11012021.pdf`.
-* **Precisión de Datos:** El sistema utiliza la "Tarifa aplicable a los pagos bimestrales" (Pág. 15) para el cálculo más preciso posible.
+* **Documento Fuente:** `./docs/Anexo+8+RMF+2021+DOF+11012021.pdf`.
+* **Precisión de Datos:** El sistema utiliza las tarifas bimestrales para el **Bimestre 1** y **Bimestre 2**.
 
 ## 4. Stack Técnico
 * **Lenguaje:** Java 17.
@@ -84,15 +79,20 @@ La lógica de transformación está estrictamente regida por los parámetros ofi
     * **Log4j:** Para el registro de eventos de la aplicación y gestión de errores.
 * **Arquitectura:** ETL (Extract, Transform, Load).
 
-## 5. Etapas del Pipeline
-1. **Extracción:** Ingesta automatizada de `data_rif.xlsx` con RFC, Nombre del Cliente, Ingresos, Gastos y Años en el régimen.
-2. **Transformación:** * Validación de datos numéricos.
-    * Búsqueda por rangos dentro de las tarifas del Anexo 8.
+### 5. Etapas del Pipeline
+1. **Extracción:** Ingesta automatizada de `data_rif.xlsx`. El sistema recorre todas las pestañas del libro; cada pestaña se asigna automáticamente a un periodo fiscal (Hoja 1 = Bimestre 1, Hoja 2 = Bimestre 2).
+2. **Transformación:** * Búsqueda por rangos dentro de las tarifas del Anexo 8 correspondientes al bimestre de la pestaña.
     * Aplicación del estímulo anual decreciente del 10%.
-3. **Carga:** Salida estructurada en consola con datos financieros formateados (Escalable a CSV/Base de Datos).
+3. **Carga:** Salida formateada en consola con alineación de columnas para facilitar la auditoría fiscal.
+
 
 ## 6. Configuración y Ejecución
 1. Clonar el repositorio.
 2. Asegurar que **Java 17** y **Maven** estén configurados en el entorno.
 3. Verificar que el archivo de entrada `data_rif.xlsx` esté en el directorio raíz.
 4. Ejecutar vía IDE o terminal usando `mvn clean install`.
+
+---
+*Note: This implementation is hosted on the `main` branch. Current Version: **v1.2.0 - Multi-Sheet Support**.*
+
+*Nota: Esta implementación se encuentra en la rama `main`. Versión actual: **v1.2.0 - Soporte Multi-Pestaña**.*
