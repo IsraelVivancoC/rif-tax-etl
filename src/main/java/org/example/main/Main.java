@@ -1,66 +1,53 @@
 package org.example.main;
 
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.example.service.CalculadoraRIFService; // Importamos el nuevo servicio
-import java.io.File;
-import java.io.FileInputStream;
+import org.example.service.*;
+import org.example.util.LectorDatosExcel;
 
 public class Main {
     public static void main(String[] args) {
-        // 1. EXTRACT: ruta del archivo
-        String excelFilePath = "data_rif.xlsx";
+        try {
+            // 1. SETUP: Inicializamos nuestras piezas
+            LectorDatosExcel lector = new LectorDatosExcel();
 
-        // Instanciamos nuestro nuevo motor de cálculo basado en el Anexo 8
-        CalculadoraRIFService calculadora = new CalculadoraRIFService();
+            // Usamos la instancia única (Singleton) de nuestro Enum
+            CalculadoraRIFService calc = new CalculadoraRIFService(EnumTablaBimestralSource.INSTANCE);
 
-        try (FileInputStream fis = new FileInputStream(new File(excelFilePath));
-             Workbook workbook = new XSSFWorkbook(fis)) {
+            // 2. EXTRACT: Leemos todas las pestañas (Bimestre 1, 2, etc.)
+            var todosLosDatos = lector.leerTodoElLibro("data_rif.xlsx");
 
-            Sheet sheet = workbook.getSheetAt(0);
+            // 3. HEADER: Encabezado del reporte
+            System.out.println("\n=== SISTEMA ETL FISCAL: REPORTE RIF 2021 ===");
+            System.out.printf("%-15s | %-5s | %-12s | %-12s | %-10s%n",
+                    "RFC", "BIM", "UTILIDAD", "ISR BRUTO", "ISR NETO");
+            System.out.println("-".repeat(75));
 
-            System.out.println("\n=== SISTEMA DE PROCESAMIENTO FISCAL RIF (ANEXO 8) ===");
-            System.out.printf("%-15s | %-20s | %-12s | %-12s | %-10s%n",
-                    "RFC", "CLIENTE", "UTILIDAD", "ISR CAUSADO", "ISR FINAL");
-            System.out.println("-----------------------------------------------------------------------------------");
+            // 4. TRANSFORM & LOAD: Procesamos cada fila del Excel
+            for (var f : todosLosDatos) {
+                double utilidad = f.ingresos() - f.gastos();
 
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue;
+                // El bimestre viene determinado por la posición de la pestaña en el Excel
+                double isrBruto = calc.calcularISR(utilidad, f.bimestre());
 
-                try {
-                    String rfc = row.getCell(0).getStringCellValue();
-                    String cliente = row.getCell(1).getStringCellValue();
-                    double ingresos = row.getCell(2).getNumericCellValue();
-                    double gastos = row.getCell(3).getNumericCellValue();
-                    int anio = (int) row.getCell(4).getNumericCellValue();
+                // Cálculo de reducción RIF según el año de tributación
+                double descuento = Math.max(0, 1.10 - (f.anio() * 0.10));
+                double isrNeto = isrBruto * (1 - descuento);
 
-                    // --- TRANSFORMACIÓN CON LÓGICA REAL ---
-
-                    double utilidad = ingresos - gastos;
-
-                    // 1. Calculamos el ISR Causado usando las tablas del Anexo 8 (Pág. 15 del PDF)
-                    double isrCausado = calculadora.calcularISRProvisional(utilidad);
-
-                    // 2. Aplicamos el Beneficio RIF (Estímulo decreciente 10% anual)
-                    // Año 1 = 100%, Año 2 = 90% ... Año 10 = 10%
-                    double porcentajeReduccion = Math.max(0, 1.10 - (anio * 0.10));
-                    double estimuloFiscal = isrCausado * porcentajeReduccion;
-
-                    double isrAPagar = isrCausado - estimuloFiscal;
-
-                    // 3. LOAD: Resultado con precisión contable
-                    System.out.printf("%-15s | %-20s | $%-11.2f | $%-11.2f | $%-9.2f%n",
-                            rfc, cliente, utilidad, isrCausado, Math.max(0, isrAPagar));
-
-                } catch (Exception e) {
-                    System.out.println("Error en fila " + (row.getRowNum() + 1) + ": " + e.getMessage());
-                }
+                // Imprimimos los resultados con formato de moneda
+                System.out.printf("%-15s | %-5d | $%-11.2f | $%-11.2f | $%-9.2f%n",
+                        f.rfc(),
+                        f.bimestre(),
+                        utilidad,
+                        isrBruto,
+                        Math.max(0, isrNeto));
             }
-            System.out.println("-----------------------------------------------------------------------------------");
-            System.out.println("Proceso ETL finalizado: Cálculos realizados según Anexo 8 RMF 2021.");
+
+            System.out.println("-".repeat(75));
+            System.out.println("Proceso finalizado con éxito. Datos procesados: " + todosLosDatos.size());
 
         } catch (Exception e) {
-            System.err.println("CRÍTICO: No se pudo procesar el archivo. Detalles: " + e.getMessage());
+            // Captura errores de archivo no encontrado, formato de Excel o lógica fiscal
+            System.err.println("CRÍTICO: " + e.getMessage());
+            e.printStackTrace(); // Útil para depurar si algo truena internamente
         }
     }
 }

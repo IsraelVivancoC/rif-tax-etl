@@ -13,7 +13,6 @@ public class RangoFiscal {
         this.porcentaje = p;
     }
 
-    // Getters
     public double getLimiteInferior() { return limiteInferior; }
     public double getLimiteSuperior() { return limiteSuperior; }
     public double getCuotaFija() { return cuotaFija; }
